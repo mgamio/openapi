@@ -1,0 +1,3341 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "selly Order API",
+    "description": "# Introduction \nThis documentation explains how to use selly's API to register as a buyer, how to connect with wholesale suppliers, how to retrieve food product information and how to order groceries to be delivered to your kitchen.\r\n\r\nMany complexities, inherently part of the food business, are solved by our technology. This API is your gateway to benefit from the solutions we built over two decades. We have done the heavy lifting of integrating with hundreds of wholesale suppliers in the food service industry. This allows you to access assortments, up-to-date customer specific prices, precise article data (ingredients, additives, allergens) and to place orders purely digital. All this across a multitude of suppliers by just a single API.\n# Contact and Support \nIn case you want to work with us please refer to **support@sellysolutions.de**\n# Resources and their relationships \nA **buyer** represents an organization aiming to place orders at suppliers to get food and ingredients delivered. This organization can be a single kitchen, a central buying department or any other setup depending on your use-case. \r\n\r\nA **supplier** represents an organization selling and delivering food and ingredients. These organizations range from local, small agriculture family businesses to large international corporations.\r\n\r\nA **customer number** is used to identify a buyer towards a supplier. A buyer receives a customer number from a supplier after registration. A buyer will have different customer numbers for different suppliers and might have multiple customers numbers for the same supplier, for example to differentiate departments within the buyer's organization. While technically a customer number is optionally it is very common, and most suppliers work with customer numbers.  \r\n\r\nAn **article** is an item offered by a supplier to buyers. Next to some basic information an article can be enriched with additional article data containing information about ingredients, additives, allergens, and other information. This is particularly important in Germany in order to meet the so called LMIV requirements.  \r\n\r\nAn **assortment** is a curated list of articles provided by a supplier. Assortments can be available for all buyers or could be provided for specified buyers only. Assortments might include different prices for contained articles. In this way assortments are often used to implement prices negotiated between buyers and suppliers.  \r\n\r\nA **buying list** is a list of articles curated by the buyer specifically for one supplier. Often buying lists are used to keep articles ordered frequently in a central place easy to find. Instead of implementing buying lists on the client-side of the API, it is recommended to use the provided API functionality. Using the API functionality ensures that prices and availability for articles within buying lists are up to date. Addtionally this offers the advantage of having buying list synced between different API clients, i.e. a third-party platform, your specific system as a buyer or the front-end solutions offered by selly.  \r\n\r\nThe **order** allows to place new orders at suppliers and give access to all past orders the buyer placed, including ordered articles and prices. Orders contain of **order positions**.  \r\n\r\nA **platform** is an organization that represents numerous buyers. This could be a buying syndicate, a central purchasing department within a larger corporation or a specialized software solutions for e.g. restaurants. Platforms can use this API on behalf of buyers.  \r\n\r\nAn **address** contains a post address and contact information such as an email address. This resource is used in various contexts, for example to store the delivery address for goods.  \n# Details on Customer Numbers  \nWe have learned that customer numbers are a concept that needs some explanation. Therefore here are given further insights on how to handle customer numbers.   \r\n\r\nAs stated above a customer number is an identifier used by suppliers to identify their customers. A supplier usually has many different customers and for each customer they have a unique number identifiying this customer, in some case they might even have more than just one customer number for a customer. Vice versa a customer usually has at least one customer number per supplier they work with.  \r\n\r\nThis concept of customer numbers is widely used and long-time established in our industry. This API reflects that standard and does not invent anything new. You might find customers that are doing business with suppliers using their customer numbers since decades.  \r\n\r\nOften further details such as contracts or negotiated conditions are linked to customer numbers. This can include specific prices, special assortments, payment terms, delivery terms or other details. Therefore suppliers have an interest that customer numbers are used in a legitimate way, that means first and foremost only those customers have access to a given customer number that are entitled to do so. Therefore customer numbers are protected by a PIN (=password). Customers intending to use a customer number need to know the corresponding PIN, at least for the first time using the customer number.  \r\n\r\nThis API allows both, to re-use already existing customer numbers and to request new customer numbers. In both cases the customer will receive the needed PIN from the supplier. This happens in different ways depending on the suppliers' processes. In most cases the PIN is transferred via email, in other cases customers are called and there could be other ways. The important aspect is, there is external communication channel to provide that PIN and the transmission of the PIN is not done via this API. Once the customer has received the PIN, this API can be used to activate the customer number by using the corresponding PIN.  \r\n# Order Warnings and Error Messages  \nThis chapter describes possible warnings and error message while processing orders and orderPositions. While putting an order with the attribute orderStatus = CHECKED the server side will validate the order and its orderPositions to inform the client side about encountered errors and warnings during validation. The same validation will be done while placing an order (orderStatus = PLACED), however checking an order before placing will allow the client to react on potential warnings and errors. \r\n\r\nPlease note that multiple errors can occur. In such case the error messages are concatenated and split by commas. \r\n| Level | OrderLifecycleStep | Status | Explanation | \r\n|------|------|------|------| \r\n|Order|CHECKED|OK|An order was sent to the server to check for any warnings and errors. The validation was successful, and no warnings or errors were encountered.| \r\n|Order|CHECKED|WARNING |An order was sent to the server to check for any warnings and errors. At least one orderPosition generated a warning or at the order level a warning was generated. However, despite these warnings the order could be placed successfully. Please refer to orderStatusMsg to obtain more detailed explanations.| \r\n|Order|CHECKED|ERROR|An order was sent to the server to check for any warnings and errors. At least one orderPosition generated an error or at the order level an error was generated. Placing this order would result in a failed order. Next to detected errors there could be additional warnings. Please refer to orderStatusMsg to obtain more detailed explanations.| \r\n|Order|PLACED|OK|The order was successfully placed, and no warning was generated, neither on the order level nor for any orderPosition.| \r\n|Order|PLACED|WARNING|The order was successfully placed, however there were warnings generated during the processing. Warnings might be on the order level or for one or multiple orderPositions. Please refer to orderStatusMsg to obtain more detailed explanations.| \r\n|Order|FAILED|ERROR|It was attempted to place an order, however during processing an error was encountered, so it was not possible to place this order successfully. This order will not be processed further and will not be processed by the corresponding supplier. Please refer to orderStatusMsg to obtain more detailed explanations.| \r\n|OrderPosition||OK|Both, during checking or during placing an order, the corresponding orderPosition did not lead to any warning or error| \r\n|OrderPosition||WARNING|Either while checking or while placing an order, the corresponding orderPosition led to a warning. Please refer to orderPositionStatusMsg to obtain more detailed explanations.| \r\n|OrderPosition||ERROR|Either while checking or while placing an order, the corresponding orderPosition led to an error. Please refer to orderPositionStatusMsg to obtain more detailed explanations.| \r\n|___________|_______________|___________|____________________________|  \r\n# Order Status messages and descriptions  \n| Level | Message | Explanation | \r\n|------|------|------| \r\n|Order|ORDERPOSITION_WARNING|At least one orderPosition of the corresponding order encountered a warning. Further details can be found in the status message of the corresponding orderPositions.| \r\n|Order|ORDERPOSITION_ERROR|At least one orderPosition of the corresponding order encountered an error. Further details can be found in the status message of the corresponding orderPositions.| \r\n|Order|DELIVERY_DATE_INVALID_ERROR|The transmitted desired delivery date is invalid.| \r\n|Order|DELIVERY_ADDRESS_INVALID_ERROR|The transmitted delivery address is invalid or is missing.| \r\n|Order|DELIVERY_ADDRESS_DIFFERS_WARNING|The transmitted delivery address for this order differs from the address given for the corresponding buyer.| \r\n|Order|INVOICE_ADDRESS_INVALID_ERROR|An invoice address was transmitted but is invalid.| \r\n|Order|SUPPLIER_UNKNOWN_ERROR|The transmitted supplierId is unknown and cannot be resolved.| \r\n|Order|SUPPLIER_INVALID_ERROR|The transmitted supplierId is invalid. This means the corresponding buyer is not registered for the transmitted supplier.| \r\n|Order|SUPPLIER_CUSTOMER_NUMBER_ERROR|The transmitted customer number is not valid (anymore) and the supplier does not accepted orders from buyers without a valid customer number. Please check the status of the  corresponding customer number used for this order with the customerNumber resource and check if there are other customer numbers available for this corresponding buyer an supplier.| \r\n|Order|SUPPLIER_CUSTOMER_NUMBER_WARNING|The transmitted customer number is not valid (anymore), however the supplier still accepts this order. Please check the status of the  corresponding customer number used for this order with the customerNumber resource and check if there are other customer numbers available for this corresponding buyer an supplier.| \r\n|Order|INVALID_EMAIL_ERROR|The transmitted email address for the order confirmation email is not valid.| \r\n|Order|ORDER_POSITION_NUMBER_ERROR|Contained orderPositions are not numbered consecutively or are not starting with orderPositionNumber = 1. Please check the orderPositionNumber attribute for the transmitted orderPosition resources.| \r\n|Order|MISSING_ORDER_POSITION_ERROR|No orderPosition resources were transmitted.| \r\n|Order|UNKNOWN_ERROR|Any unknown error was encountered during the order processing. If this behavior sustains, please get in touch with support@sellysolution.de| \r\n|OrderPosition|QUANTITY_ERROR|The transmitted quantity is invalid, for example negative or above the accepted maximum value given by the supplier.| \r\n|OrderPosition|PRICE_DIFFERS_WARNING|The article resource transmitted with the corresponding orderPosition contains a differing price compared with the data on server side. For further processing the price according to server side will be used. Please make sure to fetch latest article data from the server side to avoid this warning.| \r\n|OrderPosition|ARTICLE_INVALID_ERROR|The article resource transmitted is invalid and unknown to the server side. Please make sure to fetch latest article and assortment data from the server side to avoid this error.| \r\n|OrderPosition|ARTICLE_REMOVED_ERROR|The article resource transmitted was formerly known but meanwhile has been removed from the supplier's assortment. Please make sure to fetch latest article and assortment data from the server side to avoid this error.| \r\n|OrderPosition|ARTICLE_NOTALLOWED_ERROR|The article resource transmitted was formerly valid but meanwhile cannot be ordered anymore with the given customer number. Please make sure to fetch latest article and assortment data from the server side to avoid this error. Please also make sure to fetch latest set of customer numbers for the corresponding buyer and supplier.| \r\n|____________|________________________________________|____________________________| ",
+    "contact": {
+      "email": "support@sellysolutions.de"
+    },
+    "version": "3.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://apps8.sellytest.de/cloud",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "spring_oauth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "platforms",
+      "description": "Platform-related operations"
+    },
+    {
+      "name": "buyers",
+      "description": "Buyer-related operations"
+    },
+    {
+      "name": "assortments",
+      "description": "Assorment-related operations"
+    },
+    {
+      "name": "articles",
+      "description": "Article-related operations"
+    },
+    {
+      "name": "buyingLists",
+      "description": "BuyingList-related operations"
+    },
+    {
+      "name": "customerNumbers",
+      "description": "CustomerNumber-related operations"
+    },
+    {
+      "name": "orders",
+      "description": "Order-related operations"
+    },
+    {
+      "name": "suppliers",
+      "description": "Supplier-related operations"
+    }
+  ],
+  "paths": {
+    "/api/v2/customerNumbers/{customerNumberId}": {
+      "get": {
+        "tags": [
+          "customerNumbers"
+        ],
+        "summary": "Gets a customer number by id",
+        "description": "Gets the customer number for the requested customerNumberId",
+        "operationId": "getCustomerNumberById",
+        "parameters": [
+          {
+            "name": "customerNumberId",
+            "in": "path",
+            "description": "Technical Id for the customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerNumber"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "customerNumbers"
+        ],
+        "summary": "Updates an existing customer number",
+        "description": "Updates an existing customer number. After receiving a PIN by the supplier use this endpoint to active a given customer number by setting the attribute customerNumberPIN accordingly. ",
+        "operationId": "updateCustomerNumber",
+        "parameters": [
+          {
+            "name": "customerNumberId",
+            "in": "path",
+            "description": "Technical Id for the customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerNumber"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The customer number was updated. The response contains the updated customer number resource with the current status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerNumber"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "customerNumbers"
+        ],
+        "summary": "Deletes an existing customer number",
+        "operationId": "deleteCustomerNumber",
+        "parameters": [
+          {
+            "name": "customerNumberId",
+            "in": "path",
+            "description": "Technical Id for the customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The customer number was deleted."
+          }
+        }
+      }
+    },
+    "/api/v2/buyingLists/{buyingListId}": {
+      "get": {
+        "tags": [
+          "buyingLists"
+        ],
+        "summary": "Gets a buying list by id",
+        "description": "Gets the buying list for the requested buyingListId",
+        "operationId": "getBuyingListById",
+        "parameters": [
+          {
+            "name": "buyingListId",
+            "in": "path",
+            "description": "Technical Id for the buying list resource.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the corresponding customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyingList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "buyingLists"
+        ],
+        "summary": "Updates an existing buying list",
+        "operationId": "updateBuyingList",
+        "parameters": [
+          {
+            "name": "buyingListId",
+            "in": "path",
+            "description": "Technical Id for the buying list resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyingList"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The buying list was updated. The response contains the updated buying list resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyingList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "buyingLists"
+        ],
+        "summary": "Deletes an existing buying list",
+        "operationId": "deleteBuyingList",
+        "parameters": [
+          {
+            "name": "buyingListId",
+            "in": "path",
+            "description": "Technical Id for the buying list resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The buying list was deleted."
+          }
+        }
+      }
+    },
+    "/api/v2/buyers/{buyerId}": {
+      "get": {
+        "tags": [
+          "buyers"
+        ],
+        "summary": "Gets a buyer by id",
+        "description": "Gets the buyer for the requested buyerId",
+        "operationId": "getBuyerById",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "path",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Buyer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "buyers"
+        ],
+        "summary": "Updates an existing buyer",
+        "operationId": "updateBuyer",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "path",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Buyer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "The buyer was updated. The response contains the updated buyer resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Buyer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "buyers"
+        ],
+        "summary": "Deletes an existing buyer",
+        "operationId": "deleteBuyer",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "path",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The buyer was deleted."
+          }
+        }
+      }
+    },
+    "/api/v2/orders": {
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "List of orders placed",
+        "description": "A list of orders placed by the given buyer is returned.",
+        "operationId": "listOrders",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Search orders by specifying the Id of the corresponding supplier",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "orderDateFrom",
+            "in": "query",
+            "description": "Search orders placed from the given date. Please use yyyy-mm-dd format",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "orderDateTo",
+            "in": "query",
+            "description": "Search orders placed until the given date. Please use yyyy-mm-dd format",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(orderId|orderDate)$",
+              "type": "string",
+              "default": "orderId",
+              "enum": [
+                "orderId",
+                "orderDate"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Checks or creates a new order",
+        "description": "This endpoint is used for both, checking and submitting an order. An order posted with the attribute orderLifecycleStep = CHECK is checked on server side for any errors and warnings. This allows the client to react on potential errors and warnings before finally placing an order. An order posted with orderLifecycleStep = PLACED will be attempted to placed finally. PLease also refer to the documentation part about order warnings and error messages. ",
+        "operationId": "addOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Order"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Depending on the posted attribute orderLifecycleStep this order will be either checked of finally placed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/customerNumbers": {
+      "get": {
+        "tags": [
+          "customerNumbers"
+        ],
+        "summary": "List of customer numbers registered",
+        "description": "A list of registered customer numbers is given for the provided buyerId and supplierId.",
+        "operationId": "listCustomerNumbers",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyerId resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Find customer number provided by the supplier identified by Id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumber",
+            "in": "query",
+            "description": "A search term to find customerNumbers by their name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(customerNumberId|customerNumber)$",
+              "type": "string",
+              "default": "customerNumberId",
+              "enum": [
+                "customerNumberId",
+                "customerNumber"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerNumber"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "customerNumbers"
+        ],
+        "summary": "Creates a new customer number",
+        "description": "Activates or requests a new customer number. In case the customer number and the corresponding PIN for activation is already known by the user (either buyer or platform) the customer number can be activated immediately. To do so set the attributes customerNumber and customerNumberPIN accordingly.   In case a new customer number should be requested at the given supplier, don't set the attributes customerNumber and customerNumberPIN in the transmitted payload. The supplier will transmit the needed PIN for activation according to their processes at a later point in time.  Please see also the according section \"Details on Customer Numbers\" of the documentation above. ",
+        "operationId": "addCustomerNumber",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerNumber"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new customer number was created. The response contains the new customer number resource with the current status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerNumber"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/buyingLists": {
+      "get": {
+        "tags": [
+          "buyingLists"
+        ],
+        "summary": "List of existing buying lists",
+        "description": "A list of existing buying lists is given, if the requesting user is a buyer.",
+        "operationId": "listBuyingLists",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the corresponding customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyingListName",
+            "in": "query",
+            "description": "A search term to find buying lists by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(buyingListId|buyingListName)$",
+              "type": "string",
+              "default": "buyingListId",
+              "enum": [
+                "buyingListId",
+                "buyingListName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BuyingList"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "buyingLists"
+        ],
+        "summary": "Creates a new buying list",
+        "operationId": "addBuyingList",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyingList"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new buying list was created. The response contains the new buying list resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuyingList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/buyers": {
+      "get": {
+        "tags": [
+          "buyers"
+        ],
+        "summary": "List of buyers accessible",
+        "description": "A list of accessible buyers is given. In case the requesting user is a plaform this list might contain multiple entries. In case of a usual buyer only the data for this buyer is returned.",
+        "operationId": "listBuyers",
+        "parameters": [
+          {
+            "name": "buyerCompanyName",
+            "in": "query",
+            "description": "A search term to find buyers by their company name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(buyerId|buyerCompanyName)$",
+              "type": "string",
+              "default": "buyerId",
+              "enum": [
+                "buyerId",
+                "buyerCompanyName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Buyer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "buyers"
+        ],
+        "summary": "Creates a new buyer",
+        "description": "In case the requesting user is a platform new buyers can be created. Newly created buyers are automatically associated with the requesting platform.",
+        "operationId": "addBuyer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Buyer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new buyer was created. The response contains the new buyer resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Buyer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/suppliers/{supplierId}": {
+      "get": {
+        "tags": [
+          "suppliers"
+        ],
+        "summary": "Gets a supplier by id",
+        "description": "Gets the supplier for the requested supplierId",
+        "operationId": "getSupplierById",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "in": "path",
+            "description": "Technical Id for the supplier resource.",
+            "required": true,
+            "schema": {
+              "minimum": -101,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Supplier"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/suppliers/search": {
+      "get": {
+        "tags": [
+          "suppliers"
+        ],
+        "summary": "Search suppliers accessible",
+        "description": "A list of accessible suppliers is given that can be used to add to the buyer by posting a new customer number",
+        "operationId": "searchSuppliers",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyerId resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierName",
+            "in": "query",
+            "description": "A search term to find suppliers by their name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(supplierId|supplierName)$",
+              "type": "string",
+              "default": "supplierId",
+              "enum": [
+                "supplierId",
+                "supplierName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Supplier"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/suppliers": {
+      "get": {
+        "tags": [
+          "suppliers"
+        ],
+        "summary": "List of suppliers accessible",
+        "description": "A list of accessible suppliers for the given buyerId is returned.",
+        "operationId": "listSuppliers",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyerId resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierName",
+            "in": "query",
+            "description": "A search term to find suppliers by their name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(supplierId|supplierName)$",
+              "type": "string",
+              "default": "supplierId",
+              "enum": [
+                "supplierId",
+                "supplierName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Supplier"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/platforms": {
+      "get": {
+        "tags": [
+          "platforms"
+        ],
+        "summary": "Gets current platform data.",
+        "description": "In case the requesting user is a platform, this gives the platform data including the associated buyers.",
+        "operationId": "listPlatforms",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Platform"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/orders/{orderId}": {
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Gets an order by id",
+        "description": "Gets the order for the requested orderId",
+        "operationId": "getOrderById",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Technical Id for the order resource.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/assortments/{assortmentId}": {
+      "get": {
+        "tags": [
+          "assortments"
+        ],
+        "summary": "Gets an assortment by id",
+        "description": "Gets the assortment for the requested assortmentId",
+        "operationId": "getAssormentById",
+        "parameters": [
+          {
+            "name": "assortmentId",
+            "in": "path",
+            "description": "Technical Id for the corresponding assortment resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "A search term to find assortments accessible for the given customer number.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assortment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/assortments": {
+      "get": {
+        "tags": [
+          "assortments"
+        ],
+        "summary": "List of accessible assortments",
+        "description": "A list of accessible assortments for the given buyer, supplier and customer number is responded.",
+        "operationId": "listAssorments",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the corresponding supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the corresponding customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "assortmentName",
+            "in": "query",
+            "description": "A search term to find assortments by name.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(assortmentId|assortmentName)$",
+              "type": "string",
+              "default": "assortmentId",
+              "enum": [
+                "assortmentId",
+                "assortmentName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Assortment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/articles/{articleId}/articleDetailedData": {
+      "get": {
+        "tags": [
+          "articles"
+        ],
+        "summary": "Gets the article Detailed Data by id",
+        "description": "Gets the articleDetailedData for the requested articleId",
+        "operationId": "getArticleDetailedDataById",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "Technical Id for the article resource.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyerId resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "assortmentId",
+            "in": "query",
+            "description": "Technical Id for the assortment resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDetailedData"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/articles/{articleId}": {
+      "get": {
+        "tags": [
+          "articles"
+        ],
+        "summary": "Gets an article by id",
+        "description": "Gets the article for the requested articleId, including articleDetailedData",
+        "operationId": "getArticleById",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "description": "Technical Id for the article resource.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the buyerId resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Technical Id for the supplier resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "assortmentId",
+            "in": "query",
+            "description": "Technical Id for the assortment resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Article"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/articles": {
+      "get": {
+        "tags": [
+          "articles"
+        ],
+        "summary": "List of accessible articles",
+        "description": "A list of accessible articles for the given buyer is returned. Please use the endpoint /article/{articleId}/articleDetailedData to fetch articleDetailedData per article.",
+        "operationId": "listArticles",
+        "parameters": [
+          {
+            "name": "buyerId",
+            "in": "query",
+            "description": "Technical Id for the corresponding buyer resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "supplierId",
+            "in": "query",
+            "description": "Id of the supplier resource offering the articles",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "customerNumberId",
+            "in": "query",
+            "description": "Technical Id for the corresponding customer number resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "assortmentId",
+            "in": "query",
+            "description": "Id of the assortment resource containg the articles",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "A search term to find articles by name, articleNumber, and other fields",
+            "required": false,
+            "schema": {
+              "maxLength": 2147483647,
+              "minLength": 3,
+              "type": "string"
+            }
+          },
+          {
+            "name": "articleCommodityGroup",
+            "in": "query",
+            "description": "A search term to find articles by commodity group",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "articleCommoditySubGroup",
+            "in": "query",
+            "description": "A search term to find articles by commodity sub group",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Criteria used for sorting of the result set. By default the resource Id used for sorting.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(articleId|articleName)$",
+              "type": "string",
+              "default": "articleId",
+              "enum": [
+                "articleId",
+                "articleName"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Defines the sorting order, ASC or DESC.",
+            "required": false,
+            "schema": {
+              "pattern": "^(-|\\+)?(ASC|DESC)$",
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The number of items to skip before starting to collect the result set. By default items are ordered by the corresponding resourced Id.",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The numbers of items to return. By default items are ordered by the corresponding resourced Id. Maximum: 100",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-TotalResultCount": {
+                "description": "The total number of results that succeeded",
+                "style": "simple"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Article"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "a short, human-readable summary of the problem .",
+            "example": " Bad Request"
+          },
+          "status": {
+            "type": "integer",
+            "description": "the HTTP status code applicable to this problem.",
+            "format": "int32",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "description": "a human-readable explanation specific to this occurrence of the problem.",
+            "example": "parameter 'sortBy' invalid"
+          },
+          "path": {
+            "type": "string",
+            "description": "a pointer to the value in the request document that caused the error.",
+            "example": "/api/v2/buyingLists"
+          },
+          "timeStamp": {
+            "type": "integer",
+            "description": "TimeStamp.",
+            "format": "int64",
+            "example": 1687508256614
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ValidationError"
+              }
+            }
+          }
+        },
+        "description": "Error response"
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "a string indicating which URI query parameter caused the error.",
+            "example": "NotNull"
+          },
+          "message": {
+            "type": "string",
+            "description": "short explanation of the error.",
+            "example": "must not be zero"
+          }
+        },
+        "description": "Validation errors includes additional error details"
+      },
+      "CustomerNumber": {
+        "required": [
+          "buyerId",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "customerNumberId": {
+            "type": "integer",
+            "description": "Technical Id for the customer number resources. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "customerNumber": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "description": "Customer number identifying the buyer towards a specific supplier. Usually, this attribute will be set but it can be empty as long as a newly requested customer number is not yet granted by the supplier. "
+          },
+          "buyerId": {
+            "type": "integer",
+            "description": "Technical Id of the buyer resource using the customer number for a specific supplier ",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id of the supplier resource granting the customer number for a specific buyer. ",
+            "format": "int32"
+          },
+          "customerNumberPIN": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "description": "The PIN code to verify the customer number, in order to prevent misuse of non-authorized customer numbers. Usually, this attribute will be empty and might be set by the client while registering a new customer number for a buyer. Usually, the PIN code will be provided by the supplier. "
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the given customer number. The following values are possible and are always set by server side:  ACTIVE - The given customer number is ready to be used for ordering.  INACTIVE - The given customer number is not ready to be used for ordering. ",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.             ",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "description": "A customer number is used to identify a buyer towards a supplier. A buyer receives a customer number from a supplier after registration. A buyer will have different customer numbers for different suppliers and might have multiple customers numbers for the same supplier, for example to differentiate departments within the buyer's organization. While technically a customer number is optionally it is very common, and most suppliers work with customer numbers. "
+      },
+      "Article": {
+        "required": [
+          "articleAssortment",
+          "articleAssortmentId",
+          "articleCommodityGroup",
+          "articleCommoditySubGroup",
+          "articleName",
+          "articlePrice",
+          "supplierArticleId",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "description": "Technical Id for the article resource ",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id for the supplier resource offering the article ",
+            "format": "int32"
+          },
+          "supplierName": {
+            "type": "string",
+            "description": "Name of the supplier offering the article "
+          },
+          "supplierArticleId": {
+            "type": "string",
+            "description": "Technical identifier for the article resource as provided by the supplier "
+          },
+          "articleAssortmentId": {
+            "type": "integer",
+            "description": "Technical Id of the assortment within the article is offered ",
+            "format": "int32"
+          },
+          "articleAssortment": {
+            "type": "string",
+            "description": "Name of the assortment within the article is offered "
+          },
+          "articleName": {
+            "type": "string",
+            "description": "Name for the article as given by the supplier "
+          },
+          "articleDescription": {
+            "type": "string",
+            "description": "Description for the article as given by the supplier "
+          },
+          "articleRemark": {
+            "type": "string",
+            "description": "Additional remarks for the article as given by the supplier "
+          },
+          "articleCommodityGroup": {
+            "type": "string",
+            "description": "Commodity group for the article as given by the supplier "
+          },
+          "articleCommoditySubGroup": {
+            "type": "string",
+            "description": "Commodity sub group for the article as given by the supplier "
+          },
+          "articleGTIN": {
+            "type": "string",
+            "description": "GTIN for the article as given by the supplier. See https://www.gs1.org/standards/id-keys/gtin "
+          },
+          "articleBrand": {
+            "type": "string",
+            "description": "Trademark / brand the article is offered within "
+          },
+          "articlePrice": {
+            "type": "number",
+            "description": "Current delivery price for the article as given by the supplier "
+          },
+          "articleTaxRate": {
+            "type": "number",
+            "description": "Current VAT rate for the article as given by the supplier "
+          },
+          "articleVolumeUnit": {
+            "type": "string",
+            "description": "The volume unit for the article as given by the supplier. Possible values:\nmg - for Milligramm\ng - for Gramm\nkg - for Kilogramm\nml - for Milliliter\ncl - for Centiliter\nl - for Liter ",
+            "enum": [
+              "mg",
+              "g",
+              "kg",
+              "ml",
+              "cl",
+              "l",
+              "null"
+            ]
+          },
+          "articleGrossVolume": {
+            "type": "number",
+            "description": "The gross volume for the article in the unit as given in articleVolumeUnit. "
+          },
+          "articleNetVolume": {
+            "type": "number",
+            "description": "The net volume for the article in the unit as given in articleVolumeUnit. "
+          },
+          "articleOrderUnit": {
+            "type": "string",
+            "description": "The order unit for the article. "
+          },
+          "articleBundleUnit": {
+            "type": "string",
+            "description": "The bundle unit for the article.  "
+          },
+          "articleSingleUnit": {
+            "type": "string",
+            "description": "The single item unit within the bundle for the article. "
+          },
+          "articlePartialAllowed": {
+            "type": "boolean",
+            "description": "Flag displaying if partial units can be ordered. "
+          },
+          "articleHasLeadTime": {
+            "type": "boolean",
+            "description": "Flag displaying if an article has a lead time and potentially can't be delivered immediately. "
+          },
+          "articlePhaseOut": {
+            "type": "boolean",
+            "description": "Flag displaying if this article is going to phase-out and can't be order anymore in near future. "
+          },
+          "articleImageUrl": {
+            "type": "string",
+            "description": "URL pointing to an image of the article. "
+          },
+          "articleDatasheetUrl": {
+            "type": "string",
+            "description": "URL pointing to the datasheet for the article. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "description": "An article is an item offered by a supplier to buyers. Next to some basic information an article can be enriched with additional article data containing information about ingredients, additives, allergens, and other information. "
+      },
+      "BuyingList": {
+        "required": [
+          "buyerId",
+          "buyingListName",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "buyingListId": {
+            "type": "integer",
+            "description": "Technical identifier for the buying list. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "buyerId": {
+            "type": "integer",
+            "description": "Technical Id of the buyer resource owning this buying list. ",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id of the supplier resource being linked to this buying list. ",
+            "format": "int32"
+          },
+          "buyingListName": {
+            "type": "string",
+            "description": "Name of the buying list. "
+          },
+          "buyingListRemark": {
+            "type": "string",
+            "description": "Additional remarks for the buying list, for example to help the buyer to understand the items put on the list. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "buyingListArticles": {
+            "type": "array",
+            "description": "List of Article resources contained in this buying list. ",
+            "items": {
+              "$ref": "#/components/schemas/Article"
+            }
+          }
+        },
+        "description": "A buying list is a list of articles curated by the buyer specific for one supplier. Often buying lists are used to keep articles ordered frequently in a central place easy to find. Instead of implementing buying lists on the client-side of the API, it is recommended to use the provided API functionality. Using the API functionality ensures that prices and availability for articles within buying lists are up to date. "
+      },
+      "Address": {
+        "required": [
+          "city",
+          "countryCode",
+          "email",
+          "phone",
+          "street",
+          "zip"
+        ],
+        "type": "object",
+        "properties": {
+          "company": {
+            "type": "string",
+            "description": "Name of the organization to be reached at this address. ",
+            "readOnly": true
+          },
+          "contact": {
+            "type": "string",
+            "description": "Additional contact information, such as the name of a contact person or additional location details, such as a certain building or floor. ",
+            "readOnly": true
+          },
+          "countryCode": {
+            "pattern": "AD|AE|AF|AG|AI|AL|AM|AN|AO|AQ|AR|AS|AT|AU|AW|AX|AZ|BA|BB|BD|BE|BF|BG|BH|BI|BJ|BL|BM|BN|BO|BQ|BR|BS|BT|BV|BW|BY|BZ|CA|CC|CD|CF|CG|CH|CI|CK|CL|CM|CN|CO|CR|CU|CV|CW|CX|CY|CZ|DE|DJ|DK|DM|DO|DZ|EC|EE|EG|EH|ER|ES|ET|FI|FJ|FK|FM|FO|FR|GA|GB|GD|GE|GF|GG|GH|GI|GL|GM|GN|GP|GQ|GR|GS|GT|GU|GW|GY|HK|HM|HN|HR|HT|HU|ID|IE|IL|IM|IN|IO|IQ|IR|IS|IT|JE|JM|JO|JP|KE|KG|KH|KI|KM|KN|KP|KR|KW|KY|KZ|LA|LB|LC|LI|LK|LR|LS|LT|LU|LV|LY|MA|MC|MD|ME|MF|MG|MH|MK|ML|MM|MN|MO|MP|MQ|MR|MS|MT|MU|MV|MW|MX|MY|MZ|NA|NC|NE|NF|NG|NI|NL|NO|NP|NR|NU|NZ|OM|PA|PE|PF|PG|PH|PK|PL|PM|PN|PR|PS|PT|PW|PY|QA|RE|RO|RS|RU|RW|SA|SB|SC|SD|SE|SG|SH|SI|SJ|SK|SL|SM|SN|SO|SR|SS|ST|SV|SX|SY|SZ|TC|TD|TF|TG|TH|TJ|TK|TL|TM|TN|TO|TR|TT|TV|TW|TZ|UA|UG|UM|US|UY|UZ|VA|VC|VE|VG|VI|VN|VU|WF|WS|YE|YT|ZA|ZM|ZW",
+            "type": "string",
+            "description": "Two-digit country code according to ISO 3166-1 alpha-2. "
+          },
+          "city": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "City of the address. "
+          },
+          "district": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "District of the address. "
+          },
+          "poBox": {
+            "maxLength": 10,
+            "minLength": 0,
+            "type": "string",
+            "description": "The post box code of the address. "
+          },
+          "zip": {
+            "maxLength": 6,
+            "minLength": 1,
+            "type": "string",
+            "description": "The zip or postal code of the address. "
+          },
+          "street": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Street including house number of the address. "
+          },
+          "email": {
+            "type": "string",
+            "description": "The email address to be used for communication. "
+          },
+          "phone": {
+            "type": "string",
+            "description": "The phone number to be used for communication. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "description": "Contains a post address and contact information such as an email address. This resource is used in various contexts, for example to store the delivery address for goods. "
+      },
+      "Buyer": {
+        "required": [
+          "buyerAddress",
+          "buyerCompanyName",
+          "buyerContactLastName"
+        ],
+        "type": "object",
+        "properties": {
+          "buyerId": {
+            "type": "integer",
+            "description": "Technical identifier for the buyer. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "buyerCompanyName": {
+            "maxLength": 80,
+            "minLength": 3,
+            "type": "string",
+            "description": "Name of the buyer's organization. This is usually the name of the company represented by the buyer. "
+          },
+          "buyerTaxId": {
+            "type": "string",
+            "description": "Tax Id of the buyer's organization."
+          },
+          "buyerContactFirstName": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "description": "First name of the person representing the buyer's organization. "
+          },
+          "buyerContactLastName": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "description": "Last name of the person representing the buyer's organization. "
+          },
+          "buyerContactSalutation": {
+            "type": "string",
+            "description": "Salutation of the person representing the buyer's organization. Possible values are: 0=None, 1=Mrs, 2=Mr ",
+            "enum": [
+              "0",
+              "1",
+              "2"
+            ]
+          },
+          "buyerContactTitle": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "description": "Title of the person representing the buyer's organization. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "buyerAddress": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "description": "A buyer represents an organization aiming to place orders at suppliers to get food and ingredients delivered. This organization can be a single kitchen, a central buying department or any other setup depending on your use-case. "
+      },
+      "Order": {
+        "required": [
+          "buyerId",
+          "orderDeliveryAddress",
+          "orderPositions",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "description": "Technical identifier for the buying list. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "externalOrderNumber": {
+            "type": "string",
+            "description": "Optional identifier for orders provided by the client system, in order to allow client systems to identify orders by to their own identifiers. "
+          },
+          "buyerId": {
+            "type": "integer",
+            "description": "Technical Id of the buyer resource owning this order. ",
+            "format": "int32"
+          },
+          "customerNumberId": {
+            "type": "integer",
+            "description": "Technical Id of the customer number resource to be used for this order. ",
+            "format": "int32"
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id of the supplier resource this order is placed at. ",
+            "format": "int32"
+          },
+          "orderDate": {
+            "type": "string",
+            "description": "Timestamp when the order was placed. ",
+            "format": "date-time"
+          },
+          "orderLifecycleStep": {
+            "type": "string",
+            "description": "Lifecycle information for the order placed. The following values are possible:  NEW - a newly initiated, not yet submitted, not yet checked order.  CHECK - an order that was sent to the server to check for any warnings or errors.  PLACED - a successfully submitted order, that may contain warnings for certain order positions.  FAILED - an order that was attempted to place but failed.   Please see chapter order warnings and error messages for further details. ",
+            "enum": [
+              "NEW",
+              "CHECKED",
+              "PLACED",
+              "FAILED"
+            ]
+          },
+          "orderStatus": {
+            "type": "string",
+            "description": "Additional status message augmenting the orderStatus. The following values are possible:  OK - no errors or warnings are detected.  WARNING - at least one warning was detected.  ERROR - at least one error was detected  Please see chapter order warnings and error messages for further details. ",
+            "enum": [
+              "OK",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "orderStatusMsg": {
+            "type": "array",
+            "description": "In case of an encountered warning or error this attribute will contain a description about the error or warning.  Please see chapter order warnings and error messages for further details. ",
+            "items": {
+              "type": "string",
+              "description": "In case of an encountered warning or error this attribute will contain a description about the error or warning.  Please see chapter order warnings and error messages for further details. ",
+              "enum": [
+                "OK",
+                "WARNING",
+                "ERROR",
+                "ORDERPOSITION_WARNING",
+                "ORDERPOSITION_ERROR",
+                "DELIVERY_DATE_INVALID_ERROR",
+                "DELIVERY_ADDRESS_INVALID_ERROR",
+                "DELIVERY_ADDRESS_DIFFERS_WARNING",
+                "INVOICE_ADDRESS_INVALID_ERROR",
+                "SUPPLIER_UNKNOWN_ERROR",
+                "SUPPLIER_CUSTOMER_NUMBER_ERROR",
+                "SUPPLIER_CUSTOMER_NUMBER_WARNING",
+                "INVALID_EMAIL_ERROR",
+                "ORDER_POSITION_NUMBER_ERROR",
+                "MISSING_ORDER_POSITION_ERROR",
+                "UNKNOWN_ERROR"
+              ]
+            }
+          },
+          "orderDeliveryAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "orderInvoiceAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "confirmationEmail": {
+            "type": "boolean",
+            "description": "Send a confirmation email to the buyer. If this attribute is not true, no confirmation email will be sent. "
+          },
+          "desiredDeliveryDate": {
+            "type": "string",
+            "description": "The delivery date for the order as desired by the buyer. ",
+            "format": "date"
+          },
+          "orderBalance": {
+            "type": "number",
+            "description": "The total price for the order. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "orderPositions": {
+            "maxItems": 2147483647,
+            "minItems": 1,
+            "type": "array",
+            "description": "List of orderPositions to be ordered with this order. ",
+            "items": {
+              "$ref": "#/components/schemas/OrderPosition"
+            }
+          }
+        },
+        "description": "The **order** allows to place new orders at suppliers and give access to all past orders the buyer placed, including ordered articles and prices. Orders contain of **order positions**.       "
+      },
+      "OrderPosition": {
+        "required": [
+          "orderPositionArticle",
+          "orderPositionNumber",
+          "orderPositionQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "description": "Technical identifier for the buying list. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "orderPositionNumber": {
+            "type": "integer",
+            "description": "This attribute is used to bring orderPositions within one order into a strict sequence. The first orderPosition needs to start with orderPositionNumber = 1. ",
+            "format": "int32"
+          },
+          "orderPositionArticle": {
+            "$ref": "#/components/schemas/Article"
+          },
+          "orderPositionQuantity": {
+            "type": "number",
+            "description": "Quantity of the referenced article to be ordered. "
+          },
+          "orderPositionPrice": {
+            "type": "number",
+            "description": "Total price of the referenced article to be ordered. "
+          },
+          "orderPositionStatus": {
+            "type": "string",
+            "description": "Status information for the orderPosition. Possible values are:  OK - this means the given orderPosition was successfully checked.  WARNING - this means during the validation and processing on the server side a warning was generated.  ERROR - this means during the validation and processing on the server side there was encountered an error.  ",
+            "enum": [
+              "OK",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "orderPositionStatusMsg": {
+            "type": "array",
+            "description": "Additional status message augmenting the orderStatus. Please see chapter order warnings and error messages for further details. ",
+            "items": {
+              "type": "string",
+              "description": "Additional status message augmenting the orderStatus. Please see chapter order warnings and error messages for further details. ",
+              "enum": [
+                "QUANTITY_ERROR",
+                "PRICE_DIFFERS_WARNING",
+                "ARTICLE_INVALID_ERROR",
+                "ARTICLE_REMOVED_ERROR",
+                "ARTICLE_NOTALLOWED_ERROR"
+              ]
+            }
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "description": "List of orderPositions to be ordered with this order. "
+      },
+      "Supplier": {
+        "required": [
+          "currency",
+          "supplierAddress",
+          "supplierId",
+          "supplierName"
+        ],
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical identifier for the supplier. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "supplierName": {
+            "type": "string",
+            "description": "Name of the suppliers's organization. This is usually the name of the company represented by the supplier. "
+          },
+          "supplierTaxId": {
+            "type": "string",
+            "description": "Tax Id of the supplier's organization.            "
+          },
+          "supplierAdditionalName": {
+            "type": "string",
+            "description": "Additional naming information of the company represented by the supplier. "
+          },
+          "supplierShortName": {
+            "type": "string",
+            "description": "Short name of the supplier. "
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "type": "string",
+            "description": "Standard currency used by the supplier for trading goods. Three-digit code according to ISO 4217. "
+          },
+          "minOrderValue": {
+            "type": "number",
+            "description": "The minimum value for an order to be met to be accepted by the supplier for delivery. "
+          },
+          "supplierLogoUrl": {
+            "type": "string",
+            "description": "URL to retrieve an image containing the logo of the supplier. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time"
+          },
+          "supplierAddress": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "description": "A supplier represents an organization selling and delivering food and ingredients. These organizations range from local, small agriculture family businesses to large international corporations. "
+      },
+      "Platform": {
+        "required": [
+          "platformAddress",
+          "platformCompanyName",
+          "platformContactLastName"
+        ],
+        "type": "object",
+        "properties": {
+          "platformId": {
+            "type": "integer",
+            "description": "Technical identifier for the platform. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "platformCompanyName": {
+            "type": "string",
+            "description": "Name of the platform's organization. This is usually the name of the company represented by the platform. "
+          },
+          "platformTaxId": {
+            "type": "string",
+            "description": "Tax Id of the platform's organization.            "
+          },
+          "platformContactFirstName": {
+            "type": "string",
+            "description": "First name of the person representing the platform's organization. "
+          },
+          "platformContactLastName": {
+            "type": "string",
+            "description": "Last name of the person representing the platform's organization. "
+          },
+          "platformContactSalutation": {
+            "type": "string",
+            "description": "Salutation of the person representing the platform's organization. Possible values are: 0=None, 1=Mrs, 2=Mr ",
+            "enum": [
+              "0",
+              "1",
+              "2"
+            ]
+          },
+          "platformContactTitle": {
+            "type": "string",
+            "description": "Title of the person representing the platform's organization. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time"
+          },
+          "platformAddress": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "description": "A platform is an organization that represents numerous buyers. This could be a buying syndicate, a specialized software solutions for e.g. restaurants using this API on behalf of their clients or similar. Platforms can use this API on behalf of buyers. "
+      },
+      "Assortment": {
+        "required": [
+          "assortmentId",
+          "assortmentName",
+          "assortmentType",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "assortmentId": {
+            "type": "integer",
+            "description": "Technical identifier for the assortment. This attribute cannot be set by the client but is generated by the server. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id of the supplier resource providing this assortment ",
+            "format": "int32"
+          },
+          "assortmentName": {
+            "type": "string",
+            "description": "Name of the assortment. "
+          },
+          "assortmentType": {
+            "type": "string",
+            "description": "Type of the assortment, could for example be standard assortments, special promotion assortments or others. "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time"
+          },
+          "commodityGroups": {
+            "type": "array",
+            "description": "List of commodity groups for the articles contained in this assortment. ",
+            "items": {
+              "$ref": "#/components/schemas/CommodityGroup"
+            }
+          },
+          "links": {
+            "type": "array",
+            "description": "Link to other resources.",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        },
+        "description": "An assortment is a curated list of articles provided by a supplier. Assortments can be available for all buyers or could be provided for specified buyers only. Assortments can contain differing prices for contained articles. In this way assortments are often used to implement prices negotiated between buyers and suppliers. "
+      },
+      "CommodityGroup": {
+        "type": "object",
+        "properties": {
+          "commodityGroupId": {
+            "type": "integer",
+            "description": "Technical identifier for the commodityGroup. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "commodityGroupName": {
+            "type": "string",
+            "description": "Name of the commodityGroup as given by the supplier."
+          },
+          "commoditySubGroups": {
+            "type": "array",
+            "description": "List of commodity sub groups for the articles contained in this commodity group. ",
+            "items": {
+              "$ref": "#/components/schemas/CommoditySubGroup"
+            }
+          }
+        },
+        "description": "A commodity group combines individual articles into a group based on a common characteristic. "
+      },
+      "CommoditySubGroup": {
+        "type": "object",
+        "properties": {
+          "commoditySubGroupId": {
+            "type": "integer",
+            "description": "Technical identifier for the commoditySubGroup. ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "commoditySubGroupName": {
+            "type": "string",
+            "description": "Name of the commoditySubGroup as given by the supplier."
+          }
+        },
+        "description": "A commodity sub group combines individual articles into a sub group based on a common characteristic. "
+      },
+      "Link": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "description": "Link to other resources."
+      },
+      "ArticleDetailedData": {
+        "required": [
+          "articleId",
+          "supplierId"
+        ],
+        "type": "object",
+        "properties": {
+          "articleId": {
+            "type": "integer",
+            "description": "Technical Id for the article resource ",
+            "format": "int32",
+            "readOnly": true
+          },
+          "supplierId": {
+            "type": "integer",
+            "description": "Technical Id for the supplier resource offering the article ",
+            "format": "int32"
+          },
+          "articleManufacturerGLN": {
+            "type": "string",
+            "description": "The GLN of the organization that produced the article. See https://www.gs1.org/standards/id-keys/gln "
+          },
+          "articleManufacturer": {
+            "type": "string",
+            "description": "Name of the organization that produced the article "
+          },
+          "articleManufacturerId": {
+            "type": "string",
+            "description": "Technical identifier for the article as provided by the manufacturer of the article "
+          },
+          "articleBLS": {
+            "type": "string",
+            "description": "The BLS Code for the article as given by the supplier. See https://blsdb.de/ "
+          },
+          "articleLeadTime": {
+            "type": "string",
+            "description": "Additional information on lead times for articles having a lead time. "
+          },
+          "articleReplacementArticleId": {
+            "type": "integer",
+            "description": "For articles to be phased-out this Id points to a potential replacement article. ",
+            "format": "int32"
+          },
+          "allergenWheat": {
+            "type": "integer",
+            "description": "Information about contained wheat ",
+            "format": "int32"
+          },
+          "allergenRye": {
+            "type": "integer",
+            "description": "Information about contained rye ",
+            "format": "int32"
+          },
+          "allergenBarley": {
+            "type": "integer",
+            "description": "Information about contained barley ",
+            "format": "int32"
+          },
+          "allergenOat": {
+            "type": "integer",
+            "description": "Information about contained oat ",
+            "format": "int32"
+          },
+          "allergenSpelt": {
+            "type": "integer",
+            "description": "Information about contained spelt ",
+            "format": "int32"
+          },
+          "allergenKhorasan": {
+            "type": "integer",
+            "description": "Information about contained Khorasan wheat ",
+            "format": "int32"
+          },
+          "allergenCrustaceans": {
+            "type": "integer",
+            "description": "Information about contained crustaceans ",
+            "format": "int32"
+          },
+          "allergenEggs": {
+            "type": "integer",
+            "description": "Information about contained eggs ",
+            "format": "int32"
+          },
+          "allergenFish": {
+            "type": "integer",
+            "description": "Information about contained fish ",
+            "format": "int32"
+          },
+          "allergenPeanuts": {
+            "type": "integer",
+            "description": "Information about contained peanuts ",
+            "format": "int32"
+          },
+          "allergenSoy": {
+            "type": "integer",
+            "description": "Information about contained soy ",
+            "format": "int32"
+          },
+          "allergenMilk": {
+            "type": "integer",
+            "description": "Information about contained milk including lactose ",
+            "format": "int32"
+          },
+          "allergenAlmonds": {
+            "type": "integer",
+            "description": "Information about contained aldmonds ",
+            "format": "int32"
+          },
+          "allergenHazelnuts": {
+            "type": "integer",
+            "description": "Information about contained hazelnuts ",
+            "format": "int32"
+          },
+          "allergenWalnuts": {
+            "type": "integer",
+            "description": "Information about contained walnuts ",
+            "format": "int32"
+          },
+          "allergenCashew": {
+            "type": "integer",
+            "description": "Information about contained cashew nuts ",
+            "format": "int32"
+          },
+          "allergenPecan": {
+            "type": "integer",
+            "description": "Information about contained pecan nuts ",
+            "format": "int32"
+          },
+          "allergenBrazil": {
+            "type": "integer",
+            "description": "Information about contained brazil nuts ",
+            "format": "int32"
+          },
+          "allergenPistachio": {
+            "type": "integer",
+            "description": "Information about contained pistachio nuts ",
+            "format": "int32"
+          },
+          "allergenMacadamia": {
+            "type": "integer",
+            "description": "Information about contained macadamia nuts ",
+            "format": "int32"
+          },
+          "allergenQueenslandnuts": {
+            "type": "integer",
+            "description": "Information about contained queenslandnuts ",
+            "format": "int32"
+          },
+          "allergenCelery": {
+            "type": "integer",
+            "description": "Information about contained celery ",
+            "format": "int32"
+          },
+          "allergenMustard": {
+            "type": "integer",
+            "description": "Information about contained mustard ",
+            "format": "int32"
+          },
+          "allergenSesame": {
+            "type": "integer",
+            "description": "Information about contained sesame seeds ",
+            "format": "int32"
+          },
+          "allergenSulfurSulfites": {
+            "type": "integer",
+            "description": "Information about contained sulfur dioxide and sulfites ",
+            "format": "int32"
+          },
+          "allergenLupines": {
+            "type": "integer",
+            "description": "Information about contained lupines ",
+            "format": "int32"
+          },
+          "allergenMolluscs": {
+            "type": "integer",
+            "description": "Information about contained molluscs ",
+            "format": "int32"
+          },
+          "additiveColoring": {
+            "type": "integer",
+            "description": "Information about contained colorings ",
+            "format": "int32"
+          },
+          "additivePreservative": {
+            "type": "integer",
+            "description": "Information about contained preservatives ",
+            "format": "int32"
+          },
+          "additiveAntioxidant": {
+            "type": "integer",
+            "description": "Information about contained antioxidants ",
+            "format": "int32"
+          },
+          "additiveFlavoring": {
+            "type": "integer",
+            "description": "Information about contained flavor enhancers ",
+            "format": "int32"
+          },
+          "additiveSulfured": {
+            "type": "integer",
+            "description": "Information if article is sulfured ",
+            "format": "int32"
+          },
+          "additiveBlackened": {
+            "type": "integer",
+            "description": "Information if article is blackened ",
+            "format": "int32"
+          },
+          "additiveWaxed": {
+            "type": "integer",
+            "description": "Information if article is waxed ",
+            "format": "int32"
+          },
+          "additivePhosphate": {
+            "type": "integer",
+            "description": "Information about contained phosphate ",
+            "format": "int32"
+          },
+          "additiveSweetener": {
+            "type": "integer",
+            "description": "Information about contained sweeteners ",
+            "format": "int32"
+          },
+          "additiveSugar": {
+            "type": "integer",
+            "description": "Information about contained sugars ",
+            "format": "int32"
+          },
+          "additivePhenylalanine": {
+            "type": "integer",
+            "description": "Information about a contained source of phenylalanine ",
+            "format": "int32"
+          },
+          "additiveLaxativeEffect": {
+            "type": "integer",
+            "description": "Information if article can have a laxative effect if consumed in excess ",
+            "format": "int32"
+          },
+          "additiveMilkProtein": {
+            "type": "integer",
+            "description": "Information about contained milk proteins ",
+            "format": "int32"
+          },
+          "additiveNitriteSalt": {
+            "type": "integer",
+            "description": "Information about contained nitrite curing salt ",
+            "format": "int32"
+          },
+          "additiveNitrat": {
+            "type": "integer",
+            "description": "Information about contained nitrate ",
+            "format": "int32"
+          },
+          "additiveNitriteNitrate": {
+            "type": "integer",
+            "description": "Information about contained nitrite curing salt and nitrate ",
+            "format": "int32"
+          },
+          "additiveQuinine": {
+            "type": "integer",
+            "description": "Information about contained quinine ",
+            "format": "int32"
+          },
+          "additiveCaffeine": {
+            "type": "integer",
+            "description": "Information about contained caffeine ",
+            "format": "int32"
+          },
+          "additiveIrradiated": {
+            "type": "integer",
+            "description": "Information if article was treated with ionizing rays ",
+            "format": "int32"
+          },
+          "additiveProtectiveSealed": {
+            "type": "integer",
+            "description": "Information if article was sealed under protective atmosphere ",
+            "format": "int32"
+          },
+          "additiveAspartame": {
+            "type": "integer",
+            "description": "Information about contained aspartame ",
+            "format": "int32"
+          },
+          "additiveLicorice": {
+            "type": "integer",
+            "description": "Information about contained licorice ",
+            "format": "int32"
+          },
+          "additiveHighCaffeine": {
+            "type": "integer",
+            "description": "Information about a high level of contained caffeine. Not recommended for children and pregnant women ",
+            "format": "int32"
+          },
+          "additivePlantSterols": {
+            "type": "integer",
+            "description": "Information about contained plant sterols ",
+            "format": "int32"
+          },
+          "additivePlantStanols": {
+            "type": "integer",
+            "description": "Information about contained plant stanols ",
+            "format": "int32"
+          },
+          "additiveImpairChildren": {
+            "type": "integer",
+            "description": "Information if the article contains additives that may imper activity and attention in children ",
+            "format": "int32"
+          },
+          "additiveAssembledMeat": {
+            "type": "integer",
+            "description": "Information if the article was assembled from pieces of meat ",
+            "format": "int32"
+          },
+          "additiveAssembledFish": {
+            "type": "integer",
+            "description": "Information if the article was assembled from pieces of fish ",
+            "format": "int32"
+          },
+          "additiveNanoparticles": {
+            "type": "integer",
+            "description": "Information about contained nanoparticles ",
+            "format": "int32"
+          },
+          "nutritionEnergy": {
+            "type": "number",
+            "description": "Contained amount of energy (kilocalories) per 100g "
+          },
+          "nutritionProtein": {
+            "type": "number",
+            "description": "Contained amount of protein per 100g "
+          },
+          "nutritionFat": {
+            "type": "number",
+            "description": "Contained amount of fat per 100g "
+          },
+          "nutritionCarbohydrate": {
+            "type": "number",
+            "description": "Contained amount of carbohydrate per 100g "
+          },
+          "nutritionSugar": {
+            "type": "number",
+            "description": "Contained amount of sugar per 100g "
+          },
+          "nutritionSalt": {
+            "type": "number",
+            "description": "Contained amount of salt per 100g "
+          },
+          "nutritonSaturatedFattyAcids": {
+            "type": "number",
+            "description": "A subset of the nutitionFat-value. e.g. thereof saturated fatty acids"
+          },
+          "ingredients": {
+            "type": "string",
+            "description": "List of contained ingredients "
+          },
+          "lastUpdate": {
+            "type": "string",
+            "description": "Timestamp when the resource was updated last time.            ",
+            "format": "date-time"
+          }
+        },
+        "description": "For all allergens and additives the following values are possible: null = no information available, 0 = not contained, 1 = contained, 2 = may contain traces. "
+      }
+    },
+    "securitySchemes": {
+      "spring_oauth": {
+        "type": "oauth2",
+        "description": "Oauth2 flow",
+        "flows": {
+          "password": {
+            "tokenUrl": "https://apps8.sellytest.de/cloud/oauth/token",
+            "scopes": {
+              "read": "for read operations",
+              "write": "for write operations"
+            }
+          }
+        }
+      }
+    }
+  }
+}
