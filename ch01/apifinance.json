@@ -1,22 +1,24 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.0",
   "info": {
+    "version": "v1",
     "title": "Finance API",
-    "description": "The API aims to provide an easy reference to some of the most important formulas in the financial markets.  Simple interest is interest calculated on the assumption that there is no opportunity to re-invest the interest payments during the life of an investment and thereby earn extra income.  Compound interest is interest calculated on the assumption that interest amounts will be received periodically and can be re-invested (usually assumed to be at the same rate).    ",
-    "termsOfService": "",
-    "contact": {
-      "email": ""
-    },
-    "license": {
-      "name": "",
-      "url": "http://unlicense.org"
-    },
-    "version": "v1"
+    "description": "The API aims to provide an easy reference to some of the most important formulas in the financial markets.\n\n**Simple interest** is interest calculated on the assumption that there is no opportunity to re-invest the interest payments during the life of an investment and thereby earn extra income.\n\n**Compound interest** is interest calculated on the assumption that interest amounts will be received periodically and can be re-invested (usually assumed to be at the same rate).    "
   },
   "servers": [
     {
-      "url": "http://localhost:8080/MGAMIO/apifinance/v1",
-      "description": "Generated server url"
+      "description": "SwaggerHub API Auto Mocking",
+      "url": "https://virtserver.swaggerhub.com/MGAMIO/apifinance/v1"
+    },
+    {
+      "description": "Production server",
+      "url": "https://codersite.dev/apifinance/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "timeValueOfMoney",
+      "description": "time value of money-related operations"
     }
   ],
   "paths": {
@@ -48,15 +50,6 @@
             }
           },
           {
-            "name": "time",
-            "in": "query",
-            "description": "is the time for which principal is invested",
-            "required": true,
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
             "name": "unitOfTime",
             "in": "query",
             "description": "unit of time",
@@ -72,17 +65,26 @@
             }
           },
           {
+            "name": "time",
+            "in": "query",
+            "description": "is the time for which principal is invested",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
             "name": "yearCountConvention",
             "in": "query",
             "description": "a day/year count convention",
             "required": false,
             "schema": {
               "pattern": "^(-|\\+)?(360|365)$",
-              "type": "string",
-              "default": "360",
+              "type": "number",
+              "default": 360,
               "enum": [
-                "360",
-                "365"
+                360,
+                365
               ]
             }
           }
@@ -114,17 +116,6 @@
   },
   "components": {
     "schemas": {
-      "SimpleInterestResponse": {
-        "type": "object",
-        "properties": {
-          "simpleInterest": {
-            "type": "integer",
-            "description": "simple interest for the requested parameters",
-            "format": "int32",
-            "readOnly": true
-          }
-        }
-      },
       "ErrorDetail": {
         "type": "object",
         "properties": {
@@ -154,6 +145,17 @@
             "description": "TimeStamp.",
             "format": "int64",
             "example": 1687508256614
+          }
+        }
+      },
+      "SimpleInterestResponse": {
+        "type": "object",
+        "properties": {
+          "simpleInterest": {
+            "type": "integer",
+            "description": "simple interest for the requested parameters",
+            "format": "int32",
+            "readOnly": true
           }
         }
       }
